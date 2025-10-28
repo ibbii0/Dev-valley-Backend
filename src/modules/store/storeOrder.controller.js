@@ -77,31 +77,31 @@ export const getOrderById = asyncHandler(async (req, res) => {
 });
 
 // UPDATE ORDER
-export const updateOrder = asyncHandler(async (req, res) => {
-  const data = storeOrderValidation.partial().parse(req.body);
+// export const updateOrder = asyncHandler(async (req, res) => {
+//   const data = storeOrderValidation.partial().parse(req.body);
 
-  // If products updated, reattach images and recalc total
-  if (data.products) {
-    for (let p of data.products) {
-      const product = await StoreProduct.findById(p.storeProductId);
-      if (!product) throw new ApiError(404, `Product ${p.storeProductId} not found`);
-      p.productImage = product.productImage || null;
-    }
-    data.totalAmount = data.products.reduce((sum, p) => sum + Number(p.price) * p.quantity, 0);
-  }
+//   // If products updated, reattach images and recalc total
+//   if (data.products) {
+//     for (let p of data.products) {
+//       const product = await StoreProduct.findById(p.storeProductId);
+//       if (!product) throw new ApiError(404, `Product ${p.storeProductId} not found`);
+//       p.productImage = product.productImage || null;
+//     }
+//     data.totalAmount = data.products.reduce((sum, p) => sum + Number(p.price) * p.quantity, 0);
+//   }
 
-  const updatedOrder = await StoreOrders.findByIdAndUpdate(req.params.id, data, { new: true });
-  if (!updatedOrder) throw new ApiError(404, "Order not found");
+//   const updatedOrder = await StoreOrders.findByIdAndUpdate(req.params.id, data, { new: true });
+//   if (!updatedOrder) throw new ApiError(404, "Order not found");
 
-  const orderObj = updatedOrder.toObject();
-  for (let p of orderObj.products) {
-    if (p.productImage) {
-      p.productImageUrl = await S3UploadHelper.getSignedUrl(p.productImage);
-    }
-  }
+//   const orderObj = updatedOrder.toObject();
+//   for (let p of orderObj.products) {
+//     if (p.productImage) {
+//       p.productImageUrl = await S3UploadHelper.getSignedUrl(p.productImage);
+//     }
+//   }
 
-  return res.status(200).json(new ApiResponse(200, orderObj, "Order updated successfully"));
-});
+//   return res.status(200).json(new ApiResponse(200, orderObj, "Order updated successfully"));
+// });
 
 // DELETE ORDER
 export const deleteOrder = asyncHandler(async (req, res) => {

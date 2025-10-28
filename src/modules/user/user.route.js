@@ -3,13 +3,14 @@ import express from "express";
 import { upload } from "../../core/middleware/multer.js";
 import {
   getAllUsers,
-  createUser,
   updateUser,
   updateProfileImage,
   deleteProfileImage,
   getUserProfile,
   deleteUser,
 } from "../../modules/user/user.controller.js";
+import { isLoggedIn } from "../../core/middleware/isLoggedin.js";
+import { authorizeRoles } from "../../core/middleware/authorizeRoles.js";
 
 const router = express.Router();
 
@@ -17,9 +18,6 @@ const router = express.Router();
 
 // 📍 Get all users
 router.get("/all-users", getAllUsers);
-
-// 📍 Create/Register new user
-router.post("/", upload.single("profileImage"), createUser);
 
 // 📍 Get single user profile
 router.get("/:userId", getUserProfile);
@@ -34,6 +32,6 @@ router.put("/:userId/profile-image", upload.single("profileImage"), updateProfil
 router.delete("/:userId/profile-image", deleteProfileImage);
 
 // 📍 Delete user + related data
-router.delete("/delete/:id", deleteUser);
+router.delete("/delete",isLoggedIn,authorizeRoles("store-admin"), deleteUser);
 
 export default router;

@@ -1,3 +1,4 @@
+
 import Router from "express";
 import { isLoggedIn } from "../../core/middleware/isLoggedin.js";
 import { validate } from "../../core/middleware/validate.js";
@@ -16,6 +17,6 @@ storeFeedbackRouter.post("/",isLoggedIn,authorizeRoles("buyer"),validate(storeFe
 storeFeedbackRouter.get("/", getAllFeedbacks);
 storeFeedbackRouter.get("/:id", getFeedbackById);
 storeFeedbackRouter.put("/:id", validate(storeFeedbackValidation.partial()), updateFeedback);
-storeFeedbackRouter.delete("/:id", deleteFeedback);
+storeFeedbackRouter.delete("/del/:id",isLoggedIn,authorizeRoles("buyer"), deleteFeedback);
 
 export default storeFeedbackRouter;

@@ -10,12 +10,13 @@ import {
 } from "./storeProductReview.controller.js";
 import { isLoggedIn } from "../../core/middleware/isLoggedin.js";
 import { authorizeRoles } from "../../core/middleware/authorizeRoles.js";
+import { is } from "zod/locales";
 const storeProductReviewRouter = Router();
 
 storeProductReviewRouter.post("/",isLoggedIn,authorizeRoles("buyer"), validate(storeProductReviewValidation), createReview);
-storeProductReviewRouter.get("/", getAllReviews);
-storeProductReviewRouter.get("/:id", getReviewById);
-storeProductReviewRouter.put("/:id",isLoggedIn, validate(storeProductReviewValidation.partial()), updateReview);
-storeProductReviewRouter.delete("/:id", deleteReview);
+storeProductReviewRouter.get("/",isLoggedIn,authorizeRoles("buyer","store-admin"), getAllReviews);
+storeProductReviewRouter.get("/:id", isLoggedIn,authorizeRoles("buyer"), getReviewById);
+storeProductReviewRouter.put("/:id",isLoggedIn, authorizeRoles("buyer"), validate(storeProductReviewValidation.partial()), updateReview);
+storeProductReviewRouter.delete("/:id",isLoggedIn, authorizeRoles("buyer"), deleteReview);
 
 export default storeProductReviewRouter;

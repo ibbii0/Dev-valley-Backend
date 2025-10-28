@@ -62,7 +62,12 @@ export const updateFeedback = asyncHandler(async (req, res) => {
 
 // DELETE (only owner can delete)
 export const deleteFeedback = asyncHandler(async (req, res) => {
+  
+
   const feedback = await StoreFeedBack.findById(req.params.id);
+  const fb = await StoreFeedBack.findOne({ _id: "69004f098a923a7c48400f88" });
+console.log(fb);
+
   if (!feedback) throw new ApiError(404, "Feedback not found");
 
   if (feedback.userId.toString() !== req.user._id)

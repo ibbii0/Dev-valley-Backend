@@ -26,14 +26,7 @@ storeOrderRouter.post(
 storeOrderRouter.get("/", getAllOrders);
 storeOrderRouter.get("/:id", getOrderById);
 
-// UPDATE with optional document upload
-// storeOrderRouter.put(
-//   "/:id",
-//   isLoggedIn,
-//   upload.single("orderDocument"),
-//   validate(storeOrderValidation.partial()),
-//   updateOrder
-// );
+
 
 storeOrderRouter.delete("/:id", isLoggedIn, deleteOrder);
 

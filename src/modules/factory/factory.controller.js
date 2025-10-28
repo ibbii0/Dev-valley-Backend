@@ -4,6 +4,13 @@ import { ApiError } from "../../core/utils/api-error.js";
 import { ApiResponse } from "../../core/utils/api-response.js";
 import { asyncHandler } from "../../core/utils/async-handler.js";
 import S3UploadHelper from "../../shared/helpers/s3Upload.js";
+import FactoryProduct from "../../models/factory/FactoryProduct.model.js";
+import { FactoryProductCategory } from "../../models/factory/FactoryProductCategory.model.js";
+import { FactoryProductReview } from "../../models/factory/FactoryProductReview.model.js";
+import { FactoryProductFeedback } from "../../models/factory/FactoryProductFeedback.model.js";
+import { FactoryFeedback } from "../../models/factory/FactoryFeedback.model.js";
+import { FactoryOrder } from "../../models/factory/FactoryOrder.model.js";
+import { FactoryTransaction } from "../../models/factory/FactoryTransaction.model.js";
 
 // ---------- CREATE FACTORY ----------
 export const createFactory = asyncHandler(async (req, res) => {
@@ -119,17 +126,64 @@ export const updateFactory = asyncHandler(async (req, res) => {
 // ---------- DELETE FACTORY ----------
 export const deleteFactory = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+
+  // 1️⃣ Find factory owned by this user
   const factory = await Factory.findOne({ userID: userId });
   if (!factory) throw new ApiError(404, "Factory not found");
 
-  // Delete images from S3
-  if (factory.factoryLogo) await S3UploadHelper.deleteFile(factory.factoryLogo).catch(() => {});
-  if (factory.factoryCoverImage) await S3UploadHelper.deleteFile(factory.factoryCoverImage).catch(() => {});
-  if (factory.factoryLicenseImage) await S3UploadHelper.deleteFile(factory.factoryLicenseImage).catch(() => {});
+  // 2️⃣ Delete associated images from S3 (if any)
+  const imageFields = [
+    factory.factoryLogo,
+    factory.factoryCoverImage,
+    factory.factoryLicenseImage,
+  ];
 
+  for (const image of imageFields) {
+    if (image) {
+      await S3UploadHelper.deleteFile(image).catch(() => {});
+    }
+  }
+
+  // 3️⃣ Delete all associated records
+
+  // Products
+  const products = await FactoryProduct.find({ factoryId: factory._id });
+  for (const product of products) {
+    if (product.factoryProductImage) {
+      await S3UploadHelper.deleteFile(product.factoryProductImage).catch(() => {});
+    }
+  }
+  await FactoryProduct.deleteMany({ factoryId: factory._id });
+
+  // Product Categories
+  const categories = await FactoryProductCategory.find({ factoryId: factory._id });
+  for (const cat of categories) {
+    if (cat.factoryProductCategoryLogo) {
+      await S3UploadHelper.deleteFile(cat.factoryProductCategoryLogo).catch(() => {});
+    }
+  }
+  await FactoryProductCategory.deleteMany({ factoryId: factory._id });
+
+  // Product Reviews & Feedback
+  await FactoryProductReview.deleteMany({ factoryId: factory._id });
+  await FactoryProductFeedback.deleteMany({ factoryId: factory._id });
+
+  // Factory Feedback (given by stores)
+  await FactoryFeedback.deleteMany({ factoryId: factory._id });
+
+  // Orders
+  await FactoryOrder.deleteMany({ "products.factoryId": factory._id });
+
+  // Transactions
+  await FactoryTransaction.deleteMany({ factoryId: factory._id.toString() });
+
+  // 4️⃣ Finally, delete the factory itself
   await Factory.deleteOne({ _id: factory._id });
 
-  return res.status(200).json(new ApiResponse(200, null, "Factory deleted successfully"));
+  // 5️⃣ Send success response
+  return res
+    .status(200)
+    .json(new ApiResponse(200, null, "Factory and all related data deleted successfully"));
 });
 
 // ---------- GET ALL FACTORIES ----------

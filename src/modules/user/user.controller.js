@@ -4,17 +4,12 @@ import { ApiResponse } from "../../core/utils/api-response.js";
 import { asyncHandler } from "../../core/utils/async-handler.js";
 import S3UploadHelper from "../../shared/helpers/s3Upload.js";
 import User from "../../models/User.model.js";
-import StoreProduct from "../../models/store/StoreProduct.model.js";
-import {StoreOrders} from "../../models/store/StoreOrder.model.js";
 import { updateUserSchema } from "../../shared/validators/auth.validators.js";
 import Store from "../../models/store/Store.model.js";
-import { StoreFeedBack } from "../../models/store/StoreFeedback.model.js";
-
-import { StoreProductCategory } from "../../models/store/StoreProductCategory.model.js";
-import { StoreProductFeedback } from "../../models/store/StoreProductFeedback.model.js";
-import { StoreProductReview } from "../../models/store/StoreProductReview.model.js";
-import { StoreTransaction } from "../../models/store/StoreTransaction.model.js";
-
+import { deleteStore } from "../store/store.controller.js";
+import Factory from "../../models/factory/Factory.model.js";
+import { deleteFactory } from "../factory/factory.controller.js";
+import mongoose from "mongoose";
 // 📍 Get all users
 export const getAllUsers = asyncHandler(async (req, res) => {
   const users = await User.find().select("-password");
@@ -38,39 +33,6 @@ export const getAllUsers = asyncHandler(async (req, res) => {
   return res
     .status(200)
     .json(new ApiResponse(200, usersWithImages, "Users retrieved successfully"));
-});
-
-// 📍 Create/Register user
-export const createUser = asyncHandler(async (req, res) => {
-  const { userName, userEmail, userPassword } = req.body;
-  if (!userName || !userEmail || !userPassword)
-    throw new ApiError(400, "All fields are required");
-
-  const existingUser = await User.findOne({ userEmail });
-  if (existingUser) throw new ApiError(409, "User already exists");
-
-  let uploadResult = null;
-  if (req.file) {
-    uploadResult = await S3UploadHelper.uploadFile(req.file, "user-profiles");
-  }
-
-  const user = await User.create({
-    userName,
-    userEmail,
-    userPassword,
-    profileImage: uploadResult ? uploadResult.key : undefined,
-  });
-
-  const userResponse = user.toObject();
-  delete userResponse.userPassword;
-
-  if (uploadResult) {
-    userResponse.profileImageUrl = await S3UploadHelper.getSignedUrl(uploadResult.key);
-  }
-
-  return res
-    .status(201)
-    .json(new ApiResponse(201, userResponse, "User created successfully"));
 });
 
 // 📍 Update user info
@@ -155,56 +117,64 @@ export const getUserProfile = asyncHandler(async (req, res) => {
     .status(200)
     .json(new ApiResponse(200, userObj, "User profile retrieved successfully"));
 });
+// 📍 Delete user + related data
 
-
-import mongoose from "mongoose";
-
-// 📍 Delete user and related data
 export const deleteUser = asyncHandler(async (req, res) => {
-  const { id } = req.params;
-
+  const id = req.user._id; // 👈 use logged-in user’s ID
   const user = await User.findById(id);
   if (!user) throw new ApiError(404, "User not found");
 
-  const objectId = new mongoose.Types.ObjectId(id); // ✅ convert to ObjectId
+  const objectId = new mongoose.Types.ObjectId(id);
 
-  // ✅ Check if user has any related data
-  const hasData = await Promise.all([
-  StoreProduct.exists({ userID: objectId }),                   // StoreProduct.userID
-  StoreOrders.exists({ userId: id }),                           // StoreOrders.userId (string in your schema)
-  Store.exists({ userID: objectId }),                           // Store.userID
-  StoreFeedBack.exists({ userId: objectId }),              
-  // StoreProductCategory.exists({ storeId: userStore._id }),  // Will handle after finding user's store
-  StoreProductFeedback.exists({ userId: objectId }),           // StoreProductFeedback.userId
-  StoreProductReview.exists({ userId: objectId }),             // StoreProductReview.userId
-  // StoreTransaction.exists({ storeId: userStore._id.toString() }) // handle after finding user's store
-]);
-  const hasAnyData = hasData.some(Boolean);
+  switch (user.userRole) {
+    case "buyer": {
+      await User.findByIdAndDelete(objectId);
+      return res
+        .status(200)
+        .json(new ApiResponse(200, null, "Buyer deleted successfully"));
+    }
 
-  if (hasAnyData) {
-    // 🧹 Delete all related records
-    await Promise.all([
-      StoreProduct.deleteMany({ createdBy: objectId }),
-      StoreOrders.deleteMany({ user: objectId }),
-      Store.deleteMany({ userID: objectId }),
-      StoreFeedBack.deleteMany({ userID: objectId }),
-      StoreProductCategory.deleteMany({ createdBy: objectId }),
-      StoreProductFeedback.deleteMany({ userID: objectId }),
-      StoreProductReview.deleteMany({ userID: objectId }),
-      StoreTransaction.deleteMany({ userID: objectId }),
-    ]);
+    case "store-admin": {
+      const store = await Store.findOne({ userID: objectId });
+      if (store) {
+        await deleteStore(
+          { user: { _id: id } },
+          { status: () => ({ json: () => {} }) }
+        );
+      }
+      await User.findByIdAndDelete(objectId);
+      return res.status(200).json(
+        new ApiResponse(
+          200,
+          { storeDeleted: !!store },
+          store
+            ? "Store and Store-Admin deleted successfully"
+            : "Store-Admin deleted (no store found)"
+        )
+      );
+    }
+
+    case "factory-admin": {
+      const factory = await Factory.findOne({ userID: objectId });
+      if (factory) {
+        await deleteFactory(
+          { user: { _id: id } },
+          { status: () => ({ json: () => {} }) }
+        );
+      }
+      await User.findByIdAndDelete(objectId);
+      return res.status(200).json(
+        new ApiResponse(
+          200,
+          { factoryDeleted: !!factory },
+          factory
+            ? "Factory and Factory-Admin deleted successfully"
+            : "Factory-Admin deleted (no factory found)"
+        )
+      );
+    }
+
+    default:
+      throw new ApiError(400, "Invalid user role");
   }
-
-  // 🧑‍💻 Finally delete the user itself
-  await User.findByIdAndDelete(objectId);
-
-  return res.status(200).json(
-    new ApiResponse(
-      200,
-      { relatedDataDeleted: hasAnyData },
-      hasAnyData
-        ? "User and related data deleted successfully"
-        : "User deleted (no related data found)"
-    )
-  );
 });

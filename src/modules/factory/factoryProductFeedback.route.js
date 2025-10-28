@@ -16,6 +16,6 @@ router.post("/", isLoggedIn, authorizeRoles("store-admin"), upload.single("facto
 router.get("/", getAllFactoryProductFeedbacks);
 router.get("/:id", getFactoryProductFeedbackById);
 router.put("/:id", isLoggedIn, upload.single("factoryProductImage"), updateFactoryProductFeedback);
-router.delete("/:id", isLoggedIn, deleteFactoryProductFeedback);
+router.delete("/:id", isLoggedIn, authorizeRoles("store-admin"), deleteFactoryProductFeedback);
 
 export default router;
