@@ -1,16 +1,16 @@
 // src/shared/helpers/cookies.helper.js
 import { asyncHandler } from "../../core/utils/async-handler.js";
 
-const storeLoginCookies =  (res, accessToken, refreshToken, role) => {
+const storeLoginCookies = (res, accessToken, refreshToken, role) => {
     // Sanitize the role name to avoid spaces or capital letters
 
     console.log(role);
-    
+
     const normalizedRole = role?.toLowerCase();
 
 
     console.log("Hello world");
-    
+
     // Dynamic cookie names
     const accessTokenName = `${normalizedRole}AccessToken`;
     const refreshTokenName = `${normalizedRole}RefreshToken`;
