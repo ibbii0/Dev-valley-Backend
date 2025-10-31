@@ -17,7 +17,7 @@ const mailGenerator = new Mailgen({
     theme: "default",
     product: {
         name: 'E - Commerce',
-        link: process.env.CLIENT_URL || "http://localhost:8000",
+        link: process.env.CLIENT_URL || "http://localhost:5000",
         copyright: `© ${new Date().getFullYear()} E - Commerce. All rights reserved.`,
     },
 })
