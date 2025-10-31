@@ -1,0 +1,57 @@
+# Node modules
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+bun-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Coverage reports
+coverage/
+*.lcov
+
+# Environment files (keep secrets out of Git)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Build and cache
+dist/
+build/
+.cache/
+.tmp/
+.eslintcache
+.nyc_output/
+
+# TypeScript build info
+*.tsbuildinfo
+
+# Editor and IDE settings
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Optional lock files (uncomment if not committing)
+# package-lock.json
+# yarn.lock
+# pnpm-lock.yaml
+# bun.lockb
